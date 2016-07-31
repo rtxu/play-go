@@ -18,24 +18,29 @@ type Actor struct {
 
 func NewActor(intervalInMs int) *Actor {
     return &Actor{
-        mQuit:   make(chan bool),
         mTicker: time.NewTicker(time.Duration(intervalInMs) * time.Millisecond),
     }
 }
 
-func (this *Actor) Startup() {
+// Startup may fail, so take error as return value
+func (this *Actor) Startup() error {
     go this.loop()
+    this.mQuit = make(chan bool)
+    return nil
 }
 
+// do NOTHING when Startup failed
 func (this *Actor) Shutdown() {
-    this.mQuit <- true
+    if this.mQuit != nil {
+        this.mQuit <- true
+        this.mQuit = nil
+    }
 }
 
 func (this *Actor) loop() {
     for {
         select {
         case <-this.mQuit:
-            this.mTicker.Stop()
             return
         case <-this.mTicker.C:
             this.workflow()
